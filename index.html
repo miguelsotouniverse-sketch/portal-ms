@@ -259,14 +259,16 @@ function fetchApps(u){
   if (SCRIPT_URL.indexOf('PEGA_AQUI') !== -1) return render(u, "Vista previa", DEMO_APPS);
   fetch(SCRIPT_URL + "?action=getApps&email=" + encodeURIComponent(u.email), { method:'GET' })
     .then(r => r.json())
-    .then(data => { if(!data.ok) return showError(data.error||"Respuesta inesperada."); render(u, data.rol, data.apps||[]); })
+    .then(data => { if(!data.ok) return showError(data.error||"Respuesta inesperada."); render(u, data.rol, data.apps||[], data.nombre); })
     .catch(err => showError(err.message));
 }
 
-function render(u, rol, apps){
+function render(u, rol, apps, nombre){
   hide('loading');
   if (!apps.length){ show('noaccess'); return; }
-  $('greeting').innerHTML = "Buenas, <em>" + (u.given_name || u.name || '').split(' ')[0] + "</em>";
+  var display = (nombre && nombre.trim()) ? nombre.trim() : (u.given_name || u.name || '').split(' ')[0];
+  if (nombre && nombre.trim()) $('whoName').textContent = nombre.trim();
+  $('greeting').innerHTML = "Buenas, <em>" + display + "</em>";
   $('roleLabel').textContent = rol ? ("— " + rol) : "";
   const grid = $('grid'); grid.innerHTML = '';
   apps.forEach((a,i) => {
