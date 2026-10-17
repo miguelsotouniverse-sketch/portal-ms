@@ -407,7 +407,14 @@ button[disabled] { opacity: .5; cursor: default }
     var v = q.value; ultimo = v;
     var n = norm(v), dig = v.replace(/\D/g, '');
     if (n.length < 3 && dig.length < 2) { cierra(); return; }
-    if (!base) pinta('<div class="msgdd">Cargando pacientes…</div>');
+    if (!base) {
+      pinta('<div class="msgdd">Cargando pacientes…</div>');
+      setTimeout(function () {
+        if (base || v !== ultimo || dd.hidden || dd.textContent.indexOf('Cargando') < 0) return;
+        pinta('<div class="msgdd">Si se abrió una ventana de Google, elija su cuenta y permita «ver sus hojas de cálculo». La primera vez se pide una sola vez. <button type="button" class="ghost" id="reconectar2" style="margin-left:8px">Conectar con Google</button></div>');
+        $('reconectar2').addEventListener('click', function () { pedirToken(true).then(function () { base = null; buscar(); }, function (err) { pinta('<div class="msgdd">' + esc(err.message) + '</div>'); }); });
+      }, 6000);
+    }
     cargarBase().then(function (b) {
       if (v !== ultimo) return;
       var palabras = n.split(' ').filter(Boolean);
@@ -442,6 +449,7 @@ button[disabled] { opacity: .5; cursor: default }
     render();
   }
   var timer = null;
+  q.addEventListener('focus', function () { if (!token && !base && !cargando) cargarBase().catch(function () {}); }, { once: true });
   q.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(buscar, 200); });
   q.addEventListener('keydown', function (e) {
     var items = dd.querySelectorAll('.opt');
