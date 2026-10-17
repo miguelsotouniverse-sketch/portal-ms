@@ -7,6 +7,7 @@
 <title>Círculo MS · Tarjetas y ligas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Jost:wght@400;500&display=swap">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
@@ -71,6 +72,20 @@ button[disabled] { opacity: .5; cursor: default }
 .cards canvas { width: 100%; max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 0 0 1px var(--line) }
 .copies { display: flex; align-items: center; gap: 10px }
 .copies select { width: auto }
+.search { position: relative }
+.search input { padding-left: 36px; font-size: 16px }
+.search .ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none }
+.dd { position: absolute; left: 0; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.08); z-index: 5; max-height: 340px; overflow: auto }
+.dd[hidden] { display: none }
+.opt { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; width: 100%; text-align: left; background: transparent; color: var(--ink); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 10px 14px; font-weight: 400 }
+.opt:last-child { border-bottom: 0 }
+.opt:hover, .opt.on { background: var(--bg) }
+.opt .n { font-weight: 500; min-width: 0; overflow-wrap: anywhere }
+.opt .i { font-family: var(--display); font-size: 17px; color: var(--muted); font-variant-numeric: tabular-nums }
+.opt .t { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted) }
+.dd .msgdd { padding: 12px 14px; color: var(--muted); font-size: 13.5px }
+.sel { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; font-size: 14px; color: var(--muted) }
+.sel b { color: var(--ink); font-weight: 500 }
 @media (prefers-reduced-motion: no-preference) { .toast { transition: opacity .2s } }
 </style>
 </head>
@@ -79,19 +94,26 @@ button[disabled] { opacity: .5; cursor: default }
   <header>
     <div class="mono">M S</div>
     <h1>Ligas personales del Círculo MS</h1>
-    <p class="lede">Escriba el número de paciente y su nombre. La página arma su mensaje con liga personal para WhatsApp y su tarjeta impresa con un QR que ya lleva su código: nadie tiene que anotar nada a mano.</p>
+    <p class="lede">Escriba tres letras del nombre de la paciente y elíjala de la base. La página arma su mensaje con liga personal para WhatsApp y su tarjeta impresa con un QR que ya lleva su código: nadie tiene que anotar nada a mano.</p>
   </header>
 
   <section class="panel" aria-labelledby="t-datos">
-    <div class="row"><span class="label" id="t-datos">La embajadora</span><span class="example" id="ejemplo">Ejemplo, cámbielo</span></div>
+    <div class="row"><span class="label" id="t-datos">La embajadora</span><span class="example" id="ejemplo">Vista de ejemplo</span></div>
+    <div class="field search">
+      <label class="hint" for="q">Buscar paciente por nombre, teléfono o número</label>
+      <span class="ico" aria-hidden="true" style="top:calc(50% + 13px)">⌕</span>
+      <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ej. kar fer" role="combobox" aria-expanded="false" aria-controls="dd" aria-autocomplete="list">
+      <div class="dd" id="dd" role="listbox" hidden></div>
+    </div>
+    <div class="sel" id="sel" hidden></div>
     <div class="fields">
       <div class="field">
         <label class="hint" for="pid">Número de paciente (columna ID)</label>
-        <div class="idbox"><span>MS-</span><input id="pid" inputmode="numeric" autocomplete="off" value="2875" aria-describedby="pid-hint"></div>
+        <div class="idbox"><span>MS-</span><input id="pid" inputmode="numeric" autocomplete="off" value="" placeholder="Se llena solo" aria-describedby="pid-hint"></div>
       </div>
       <div class="field">
         <label class="hint" for="pname">Nombre como aparece en la tarjeta</label>
-        <input id="pname" autocomplete="off" value="Ana Ruiz">
+        <input id="pname" autocomplete="off" value="" placeholder="Se llena solo; puede corregirlo">
       </div>
     </div>
     <p class="hint" id="pid-hint">Es el mismo número que recepción escribe en la columna <b>Referido_Por_ID</b> cuando llega alguien recomendado por ella.</p>
@@ -120,6 +142,7 @@ button[disabled] { opacity: .5; cursor: default }
         <div class="code" id="code">MS-2875</div>
         <div class="msg" id="msg"></div>
         <div class="row">
+          <button id="waBtn" type="button" hidden>Enviar a su WhatsApp</button>
           <button id="copyMsg" type="button">Copiar mensaje</button>
           <button id="copyLink" type="button" class="ghost">Copiar solo la liga</button>
           <span class="toast" id="toast" role="status" aria-live="polite"></span>
@@ -136,8 +159,8 @@ button[disabled] { opacity: .5; cursor: default }
   <section class="panel" aria-labelledby="t-como">
     <span class="label" id="t-como">Cómo se usa</span>
     <ol class="steps">
-      <li><b>Antes del último retiro de puntos</b>, enfermería escribe aquí el número y el nombre de la paciente, descarga el PDF, lo imprime a doble cara y corta las tarjetas para el sobre.</li>
-      <li><b>En la cita de 1 mes</b>, después de que el doctor hace el pedido, recepción copia el mensaje y se lo envía por WhatsApp.</li>
+      <li><b>Antes del último retiro de puntos</b>, enfermería busca aquí a la paciente por su nombre, descarga el PDF, lo imprime a doble cara y corta las tarjetas para el sobre.</li>
+      <li><b>En la cita de 1 mes</b>, después de que el doctor hace el pedido, recepción busca a la paciente y oprime «Enviar a su WhatsApp»: se abre el chat con su número y el mensaje ya escrito.</li>
       <li>Quien ella recomiende escribe a Michelle con su código ya incluido, desde la liga o el QR de la tarjeta. <b>Al darle de alta</b>, se confirma el número en <b>Referido_Por_ID</b>.</li>
       <li>El crédito se emite solo, cada hora, cuando la cirugía de la invitada queda liquidada. Se ve en la pestaña <b>Círculo MS</b>.</li>
     </ol>
@@ -150,12 +173,13 @@ button[disabled] { opacity: .5; cursor: default }
   var NEGRO = '#030707', TAUPE = '#A19487', CREMA = '#F4F2F1';
   var $ = function (id) { return document.getElementById(id); };
   var pid = $('pid'), pname = $('pname'), toast = $('toast');
-  var lastLink = '', lastMsg = '', touched = false;
+  var lastLink = '', lastMsg = '', touched = false, selTel = '';
 
   function limpiaId(v) { return String(v || '').replace(/\D/g, ''); }
   function datos() {
-    var id = limpiaId(pid.value);
-    var nombre = pname.value.trim().replace(/\s+/g, ' ');
+    var ej = !limpiaId(pid.value) && !pname.value.trim();
+    var id = ej ? '2875' : limpiaId(pid.value);
+    var nombre = ej ? 'Ana Ruiz' : pname.value.trim().replace(/\s+/g, ' ');
     var code = id ? 'MS-' + id : 'MS-';
     var saludo = nombre.split(' ')[0] || '';
     var precarga = 'Hola, vengo de parte de ' + (nombre || 'una paciente') + ' del Dr. Miguel Soto. Mi código de invitación es ' + code + '.';
@@ -235,7 +259,9 @@ button[disabled] { opacity: .5; cursor: default }
       'Cuando la persona que usted recomiende realice su cirugía, le haremos llegar crédito para sus tratamientos. Su código es ' + d.code + '.';
     $('msg').textContent = lastMsg;
     $('link').textContent = d.link;
-    $('ejemplo').hidden = touched;
+    $('ejemplo').hidden = !!(limpiaId(pid.value) || pname.value.trim());
+    var tel = waTel(selTel);
+    $('waBtn').hidden = !tel;
     if (window.QRCode) {
       var box = $('qr');
       box.innerHTML = '';
@@ -243,7 +269,7 @@ button[disabled] { opacity: .5; cursor: default }
       frente($('cFrente'), d);
       reverso($('cReverso'), d);
     }
-    $('pdfBtn').disabled = $('printBtn').disabled = !d.id || !window.jspdf;
+    $('pdfBtn').disabled = $('printBtn').disabled = !limpiaId(pid.value) || !window.jspdf;
   }
 
   function aviso(el, t, warn) {
@@ -316,6 +342,124 @@ button[disabled] { opacity: .5; cursor: default }
     aviso($('toastPdf'), 'PDF abierto en otra pestaña: imprima a doble cara, volteo por el lado largo.');
     setTimeout(function () { URL.revokeObjectURL(url); }, 300000);
   });
+
+
+  /* ── Buscador conectado a la Base de Datos (AltaPacientes), igual que el cotizador ──
+     Lee 'Base Datos'!A:Q con la sesión de Google del usuario: A = ID, I = Paciente, Q = Teléfono. */
+  var CLIENT_ID = '536486651249-cu5iq19frldtvvpsd1mamnqlr0attuab.apps.googleusercontent.com';
+  var SHEET = '1y8go-wAMK_mCp59oQJ5TwsrvcdtfsxWAPo19H_1Mk1Q';
+  var RANGO = "'Base Datos'!A2:Q";
+  var SCOPE = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+  var TK = 'circulo_tk_v1';
+  var token = '', tokenClient = null, base = null, cargando = null, matches = [], foco = -1, ultimo = '';
+  var q = $('q'), dd = $('dd');
+  try { var g = JSON.parse(sessionStorage.getItem(TK) || 'null'); if (g && g.exp > Date.now()) token = g.t; } catch (e) {}
+
+  function norm(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+  function esc(t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function waTel(t) {
+    var d = String(t || '').replace(/\D/g, '');
+    if (d.length === 10) return '52' + d;
+    if (d.length === 13 && d.indexOf('521') === 0) return '52' + d.slice(3);
+    if (d.length === 12 && d.indexOf('52') === 0) return d;
+    return d.length >= 11 ? d : '';
+  }
+  function pedirToken(conVentana) {
+    return new Promise(function (ok, mal) {
+      if (!window.google || !google.accounts || !google.accounts.oauth2) return mal(new Error('Google aún no carga; intente de nuevo.'));
+      if (!tokenClient) tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: function () {} });
+      tokenClient.callback = function (r) {
+        if (r && r.access_token) {
+          token = r.access_token;
+          try { sessionStorage.setItem(TK, JSON.stringify({ t: token, exp: Date.now() + ((r.expires_in || 3600) - 120) * 1000 })); } catch (e) {}
+          ok(token);
+        } else mal(new Error('Sin permiso para leer la base.'));
+      };
+      tokenClient.error_callback = function () { mal(new Error('Se cerró la ventana de Google.')); };
+      tokenClient.requestAccessToken({ prompt: conVentana ? 'consent' : '' });
+    });
+  }
+  function bajar() {
+    return fetch('https://sheets.googleapis.com/v4/spreadsheets/' + SHEET + '/values/' + encodeURIComponent(RANGO),
+      { headers: { Authorization: 'Bearer ' + token } }).then(function (r) {
+        if (r.status === 401 || r.status === 403) { token = ''; try { sessionStorage.removeItem(TK); } catch (e) {} throw new Error('auth'); }
+        if (!r.ok) throw new Error('La base respondió ' + r.status);
+        return r.json();
+      });
+  }
+  function cargarBase() {
+    if (base) return Promise.resolve(base);
+    if (cargando) return cargando;
+    var paso = token ? bajar().catch(function (e) { if (e.message !== 'auth') throw e; return pedirToken(false).then(bajar); })
+                     : pedirToken(false).then(bajar);
+    cargando = paso.then(function (data) {
+      base = (data.values || []).map(function (r) {
+        var nombre = String(r[8] || '').trim().replace(/\s+/g, ' ');
+        return { id: limpiaId(r[0]), nombre: nombre, tel: String(r[16] || '').trim(), k: norm(nombre), d: String(r[16] || '').replace(/\D/g, '') };
+      }).filter(function (p) { return p.nombre && p.id; });
+      return base;
+    }).finally(function () { cargando = null; });
+    return cargando;
+  }
+  function pinta(html) { dd.innerHTML = html; dd.hidden = false; q.setAttribute('aria-expanded', 'true'); }
+  function cierra() { dd.hidden = true; q.setAttribute('aria-expanded', 'false'); foco = -1; }
+  function buscar() {
+    var v = q.value; ultimo = v;
+    var n = norm(v), dig = v.replace(/\D/g, '');
+    if (n.length < 3 && dig.length < 2) { cierra(); return; }
+    if (!base) pinta('<div class="msgdd">Cargando pacientes…</div>');
+    cargarBase().then(function (b) {
+      if (v !== ultimo) return;
+      var palabras = n.split(' ').filter(Boolean);
+      var soloNum = /^[\s\d\-ms]+$/i.test(v) && dig.length >= 2;
+      matches = b.filter(function (p) {
+        if (soloNum) return p.id === dig || (dig.length >= 4 && p.d.indexOf(dig) >= 0);
+        return palabras.every(function (w) { return p.k.indexOf(w) >= 0; });
+      });
+      matches.sort(function (a, z) { return (z.k.indexOf(palabras[0] || '') === 0) - (a.k.indexOf(palabras[0] || '') === 0) || Number(z.id) - Number(a.id); });
+      matches = matches.slice(0, 8); foco = -1;
+      if (!matches.length) { pinta('<div class="msgdd">No encontré a nadie con «' + esc(v) + '».</div>'); return; }
+      pinta(matches.map(function (p, i) {
+        return '<button type="button" class="opt" role="option" data-i="' + i + '"><span class="n">' + esc(p.nombre) + '</span><span class="i">MS-' + esc(p.id) + '</span>' +
+          (p.tel ? '<span class="t">Tel. ' + esc(p.tel) + '</span>' : '<span class="t">Sin teléfono en la base</span>') + '</button>';
+      }).join(''));
+    }).catch(function (e) {
+      if (v !== ultimo) return;
+      pinta('<div class="msgdd">' + esc(e.message === 'auth' ? 'Sin permiso para leer la base.' : e.message) + ' <button type="button" class="ghost" id="reconectar" style="margin-left:8px">Conectar con Google</button></div>');
+      $('reconectar').addEventListener('click', function () { pedirToken(true).then(function () { base = null; buscar(); }, function (err) { pinta('<div class="msgdd">' + esc(err.message) + '</div>'); }); });
+    });
+  }
+  function nombreTarjeta(n) {
+    // «FERNANDEZ LOPEZ KARINA» o «karina fernandez» → Mayúscula Inicial
+    return n.toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, function (m, a, b) { return a + b.toUpperCase(); });
+  }
+  function elegir(i) {
+    var p = matches[i]; if (!p) return;
+    pid.value = p.id; pname.value = nombreTarjeta(p.nombre); selTel = p.tel; touched = true;
+    q.value = ''; cierra();
+    $('sel').hidden = false;
+    $('sel').innerHTML = '<span><b>' + esc(p.nombre) + '</b></span><span>MS-' + esc(p.id) + '</span><span>' + (p.tel ? 'Tel. ' + esc(p.tel) : 'Sin teléfono en la base') + '</span>';
+    render();
+  }
+  var timer = null;
+  q.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(buscar, 200); });
+  q.addEventListener('keydown', function (e) {
+    var items = dd.querySelectorAll('.opt');
+    if (dd.hidden || !items.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault(); foco = Math.max(0, Math.min(items.length - 1, foco + (e.key === 'ArrowDown' ? 1 : -1)));
+      items.forEach(function (el, k) { el.classList.toggle('on', k === foco); });
+      items[foco].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') { e.preventDefault(); elegir(foco >= 0 ? foco : 0); }
+    else if (e.key === 'Escape') cierra();
+  });
+  dd.addEventListener('mousedown', function (e) { var b = e.target.closest('.opt'); if (b) { e.preventDefault(); elegir(Number(b.dataset.i)); } });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.search')) cierra(); });
+  $('waBtn').addEventListener('click', function () {
+    var tel = waTel(selTel); if (!tel) return;
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(lastMsg), '_blank', 'noopener');
+  });
+  [pid, pname].forEach(function (el) { el.addEventListener('input', function () { if (el === pid) { selTel = ''; $('sel').hidden = true; } }); });
 
   [pid, pname].forEach(function (el) { el.addEventListener('input', function () { touched = true; render(); }); });
   $('copyMsg').addEventListener('click', function () { copiar(lastMsg, 'Mensaje copiado'); });
