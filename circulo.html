@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Jost:wght@400;500&display=swap">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* Layout: una sola columna de trabajo — datos de la paciente arriba, luego lo que se envía por WhatsApp y la tarjeta impresa con su QR personal */
 :root {
@@ -50,7 +49,7 @@ input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px s
 .idbox span { padding-left: 12px; font-family: var(--display); font-size: 18px; color: var(--muted) }
 .idbox input { border: 0; background: transparent; padding-left: 4px; font-variant-numeric: tabular-nums }
 .hint { font-size: 12.5px; color: var(--muted) }
-.result { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start }
+.result { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: start }
 @media (max-width: 560px) { .result { grid-template-columns: 1fr } }
 .code { font-family: var(--display); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums }
 .msg { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 14px; font-size: 14.5px; min-width: 0; overflow-wrap: anywhere }
@@ -72,6 +71,8 @@ button[disabled] { opacity: .5; cursor: default }
 .cards canvas { width: 100%; max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 0 0 1px var(--line) }
 .copies { display: flex; align-items: center; gap: 10px }
 .copies select { width: auto }
+.tcard { margin: 0; justify-self: center; width: 100%; max-width: 300px }
+.tcard canvas { display: block; width: 100%; height: auto; border-radius: 10px; box-shadow: 0 0 0 1px var(--line), 0 10px 30px rgba(0,0,0,.08) }
 .search { position: relative }
 .search input { padding-left: 36px; font-size: 16px }
 .search .ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none }
@@ -94,7 +95,7 @@ button[disabled] { opacity: .5; cursor: default }
   <header>
     <div class="mono">M S</div>
     <h1>Ligas personales del Círculo MS</h1>
-    <p class="lede">Escriba tres letras del nombre de la paciente y elíjala de la base. La página arma su mensaje con liga personal para WhatsApp y su tarjeta impresa con un QR que ya lleva su código: nadie tiene que anotar nada a mano.</p>
+    <p class="lede">Escriba tres letras del nombre de la paciente y elíjala de la base. La página arma su mensaje con liga personal para WhatsApp y su tarjeta digital con un QR que ya lleva su código, lista para enviar por WhatsApp.</p>
   </header>
 
   <section class="panel" aria-labelledby="t-datos">
@@ -120,48 +121,30 @@ button[disabled] { opacity: .5; cursor: default }
   </section>
 
   <section class="panel" aria-labelledby="t-tarjeta">
-    <span class="label" id="t-tarjeta">Tarjeta impresa con QR personal</span>
-    <div class="cards">
-      <figure><canvas id="cFrente" width="1063" height="591" aria-label="Vista previa del frente de la tarjeta"></canvas><figcaption class="hint">Frente</figcaption></figure>
-      <figure><canvas id="cReverso" width="1063" height="591" aria-label="Vista previa del reverso de la tarjeta con QR personal"></canvas><figcaption class="hint">Reverso: el QR abre WhatsApp con su código ya escrito</figcaption></figure>
-    </div>
-    <div class="row">
-      <div class="copies"><label class="hint" for="ncopias">Tarjetas</label>
-        <select id="ncopias"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></div>
-      <button id="printBtn" type="button">Abrir para imprimir</button>
-      <button id="pdfBtn" type="button" class="ghost">Descargar PDF</button>
-      <span class="toast" id="toastPdf" role="status" aria-live="polite"></span>
-    </div>
-    <p class="hint">Hoja carta a doble cara, volteo por el lado largo. Corte por las marcas: cada tarjeta mide 9 × 5 cm. Tres tarjetas por paciente alcanzan para el sobre y las dos que se entregan en la cita de 6 meses o 1 año.</p>
-  </section>
-
-  <section class="panel" aria-labelledby="t-env">
-    <span class="label" id="t-env">Mensaje para enviarle por WhatsApp</span>
+    <span class="label" id="t-tarjeta">Su tarjeta digital del Círculo MS</span>
     <div class="result">
+      <figure class="tcard"><canvas id="cTarjeta" width="1200" height="1362" role="img" aria-label="Tarjeta digital con el nombre de la paciente, su código y su QR personal"></canvas></figure>
       <div class="field">
         <div class="code" id="code">MS-2875</div>
         <div class="msg" id="msg"></div>
         <div class="row">
           <button id="waBtn" type="button" hidden>Enviar a su WhatsApp</button>
-          <button id="copyMsg" type="button">Copiar mensaje</button>
-          <button id="copyLink" type="button" class="ghost">Copiar solo la liga</button>
-          <span class="toast" id="toast" role="status" aria-live="polite"></span>
+          <button id="shareBtn" type="button" class="ghost" hidden>Compartir…</button>
+          <button id="pngBtn" type="button" class="ghost">Descargar tarjeta</button>
+          <button id="copyMsg" type="button" class="ghost">Copiar mensaje</button>
         </div>
-        <div class="link" id="link"></div>
+        <span class="toast" id="toast" role="status" aria-live="polite"></span>
+        <p class="hint" id="waHint">«Enviar a su WhatsApp» copia la tarjeta y abre el chat de la paciente con el mensaje ya escrito. En el chat, pegue la tarjeta con <b>Cmd+V</b> (Ctrl+V en Windows), envíela, y luego envíe el mensaje.</p>
+        <div class="link" id="link" hidden></div>
       </div>
-      <figure class="field" style="margin:0">
-        <div class="qr" id="qr" aria-label="Código QR de la liga personal"></div>
-        <figcaption class="hint" style="text-align:center">Si la paciente prefiere,<br>puede escanearlo aquí</figcaption>
-      </figure>
     </div>
   </section>
 
   <section class="panel" aria-labelledby="t-como">
     <span class="label" id="t-como">Cómo se usa</span>
     <ol class="steps">
-      <li><b>Antes del último retiro de puntos</b>, enfermería busca aquí a la paciente por su nombre, descarga el PDF, lo imprime a doble cara y corta las tarjetas para el sobre.</li>
-      <li><b>En la cita de 1 mes</b>, después de que el doctor hace el pedido, recepción busca a la paciente y oprime «Enviar a su WhatsApp»: se abre el chat con su número y el mensaje ya escrito.</li>
-      <li>Quien ella recomiende escribe a Michelle con su código ya incluido, desde la liga o el QR de la tarjeta. <b>Al darle de alta</b>, se confirma el número en <b>Referido_Por_ID</b>.</li>
+      <li><b>En la cita de 1 mes</b>, después de que el doctor hace el pedido, recepción busca aquí a la paciente y oprime «Enviar a su WhatsApp»: le manda su tarjeta digital y el mensaje con su liga personal.</li>
+      <li>Ella reenvía la tarjeta o el mensaje a quien quiera. Quien ella recomiende escribe a Michelle con su código ya incluido, desde la liga o escaneando el QR de la tarjeta. <b>Al darle de alta</b>, se confirma el número en <b>Referido_Por_ID</b>.</li>
       <li>El crédito se emite solo, cada hora, cuando la cirugía de la invitada queda liquidada. Se ve en la pestaña <b>Círculo MS</b>.</li>
     </ol>
   </section>
@@ -262,14 +245,10 @@ button[disabled] { opacity: .5; cursor: default }
     $('ejemplo').hidden = !!(limpiaId(pid.value) || pname.value.trim());
     var tel = waTel(selTel);
     $('waBtn').hidden = !tel;
-    if (window.QRCode) {
-      var box = $('qr');
-      box.innerHTML = '';
-      new QRCode(box, { text: d.link, width: 152, height: 152, colorDark: NEGRO, colorLight: CREMA, correctLevel: QRCode.CorrectLevel.M });
-      frente($('cFrente'), d);
-      reverso($('cReverso'), d);
-    }
-    $('pdfBtn').disabled = $('printBtn').disabled = !limpiaId(pid.value) || !window.jspdf;
+    if (window.QRCode) tarjeta($('cTarjeta'), d);
+    var listo = !!limpiaId(pid.value) && !!window.QRCode;
+    $('pngBtn').disabled = !listo;
+    $('shareBtn').hidden = !(listo && puedeCompartir);
   }
 
   function aviso(el, t, warn) {
@@ -279,7 +258,7 @@ button[disabled] { opacity: .5; cursor: default }
 
   function copiar(texto, ok) {
     var fallback = function () {
-      var r = document.createRange(); r.selectNodeContents(texto === lastMsg ? $('msg') : $('link'));
+      var r = document.createRange(); r.selectNodeContents($('msg'));
       var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
       aviso(toast, 'Texto seleccionado: cópielo con Cmd+C');
     };
@@ -287,62 +266,49 @@ button[disabled] { opacity: .5; cursor: default }
     catch (e) { fallback(); }
   }
 
-  // ── PDF carta: página 1 frentes, página 2 reversos (espejo horizontal para doble cara por el lado largo) ──
-  function construirPDF(d, n) {
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF({ unit: 'mm', format: 'letter', compress: true });
-    var PW = 215.9, PH = 279.4, CW = 90, CH = 50, gx = 10, gy = 10, cols = 2, rows = 4;
-    var x0 = (PW - (cols * CW + (cols - 1) * gx)) / 2, y0 = (PH - (rows * CH + (rows - 1) * gy)) / 2;
-    var cf = document.createElement('canvas'); cf.width = 1063; cf.height = 591; frente(cf, d);
-    var cr = document.createElement('canvas'); cr.width = 1063; cr.height = 591; reverso(cr, d);
-    var imgF = cf.toDataURL('image/png'), imgR = cr.toDataURL('image/png');
-    function marcas(x, y) {
-      doc.setDrawColor(0); doc.setLineWidth(0.15);
-      var L = 4, g = 1.5;
-      [[x, y, -1, -1], [x + CW, y, 1, -1], [x, y + CH, -1, 1], [x + CW, y + CH, 1, 1]].forEach(function (p) {
-        doc.line(p[0] + p[2] * g, p[1], p[0] + p[2] * (g + L), p[1]);
-        doc.line(p[0], p[1] + p[3] * g, p[0], p[1] + p[3] * (g + L));
-      });
-    }
-    [['Frente', imgF, false], ['Reverso', imgR, true]].forEach(function (lado, k) {
-      if (k) doc.addPage();
-      for (var i = 0; i < n; i++) {
-        var r = Math.floor(i / cols), c = i % cols;
-        if (lado[2]) c = cols - 1 - c;
-        var x = x0 + c * (CW + gx), y = y0 + r * (CH + gy);
-        doc.addImage(lado[1], 'PNG', x, y, CW, CH, lado[0] + i, 'FAST');
-        marcas(x, y);
-      }
-      doc.setFontSize(7); doc.setTextColor(120);
-      doc.text(lado[0] + ' · ' + d.code + ' · imprimir a doble cara, volteo por el lado largo · cortar por las marcas · 9 × 5 cm', PW / 2, PH - 8, { align: 'center' });
+  // ── Tarjeta digital: frente arriba, reverso abajo, en una sola imagen para WhatsApp ──
+  function tarjeta(c, d) {
+    var ctx = c.getContext('2d'), W = c.width, H = c.height, m = 68, cw = 1063, ch = 591, r = 22;
+    ctx.fillStyle = '#E9E5E1'; ctx.fillRect(0, 0, W, H);
+    [[frente, m], [reverso, m + ch + 44]].forEach(function (lado) {
+      var t = document.createElement('canvas'); t.width = cw; t.height = ch; lado[0](t, d);
+      var x = (W - cw) / 2, y = lado[1];
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.16)'; ctx.shadowBlur = 28; ctx.shadowOffsetY = 10;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, cw, ch, r) : ctx.rect(x, y, cw, ch); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, cw, ch, r) : ctx.rect(x, y, cw, ch); ctx.clip(); ctx.drawImage(t, x, y); ctx.restore();
     });
-    return doc.output('blob');
   }
+  function tarjetaBlob() {
+    return new Promise(function (ok, mal) { $('cTarjeta').toBlob(function (b) { b ? ok(b) : mal(new Error('No se pudo crear la imagen')); }, 'image/png'); });
+  }
+  function nombreArchivo() { var d = datos(); return 'Circulo-' + d.code + (d.saludo ? '-' + d.saludo : '') + '.png'; }
+  var puedeCompartir = false;
+  try { puedeCompartir = !!(navigator.canShare && navigator.canShare({ files: [new File([new Blob(['x'], { type: 'image/png' })], 'x.png', { type: 'image/png' })] })); } catch (e) {}
 
-  function generar() {
-    var d = datos(), t = $('toastPdf');
-    if (!d.id) { aviso(t, 'Escriba el número de paciente.', true); return null; }
+  $('pngBtn').addEventListener('click', function () {
+    tarjetaBlob().then(function (b) {
+      var url = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = url; a.download = nombreArchivo(); document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+      aviso(toast, 'Tarjeta descargada');
+    }, function (e) { aviso(toast, e.message, true); });
+  });
+  $('shareBtn').addEventListener('click', function () {
+    tarjetaBlob().then(function (b) {
+      return navigator.share({ files: [new File([b], nombreArchivo(), { type: 'image/png' })], text: lastMsg });
+    }).catch(function (e) { if (e && e.name !== 'AbortError') aviso(toast, 'No se pudo compartir; use «Descargar tarjeta».', true); });
+  });
+  $('waBtn').addEventListener('click', function () {
+    var tel = waTel(selTel); if (!tel) return;
+    var abrir = function (copiada) {
+      var w = window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(lastMsg), '_blank', 'noopener');
+      aviso(toast, copiada ? 'Tarjeta copiada. En el chat pegue con Cmd+V y envíela; el mensaje ya va escrito.'
+                           : 'Se abrió el chat con el mensaje. Para la tarjeta, use «Descargar tarjeta» y adjúntela.', !copiada);
+    };
     try {
-      var blob = construirPDF(d, Number($('ncopias').value) || 3);
-      return { blob: blob, nombre: 'Circulo-MS-tarjetas-' + d.code + (d.saludo ? '-' + d.saludo : '') + '.pdf' };
-    } catch (e) { aviso(t, 'No se pudo generar el PDF: ' + (e && e.message ? e.message : e), true); return null; }
-  }
-  $('pdfBtn').addEventListener('click', function () {
-    var g = generar(); if (!g) return;
-    var url = URL.createObjectURL(g.blob), a = document.createElement('a');
-    a.href = url; a.download = g.nombre; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
-    aviso($('toastPdf'), 'PDF descargado');
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': tarjetaBlob() })]).then(function () { abrir(true); }, function () { abrir(false); });
+    } catch (e) { abrir(false); }
   });
-  $('printBtn').addEventListener('click', function () {
-    var g = generar(); if (!g) return;
-    var url = URL.createObjectURL(g.blob);
-    var w = window.open(url, '_blank');
-    if (!w) { aviso($('toastPdf'), 'El navegador bloqueó la ventana. Use «Descargar PDF».', true); return; }
-    aviso($('toastPdf'), 'PDF abierto en otra pestaña: imprima a doble cara, volteo por el lado largo.');
-    setTimeout(function () { URL.revokeObjectURL(url); }, 300000);
-  });
-
 
   /* ── Buscador conectado a la Base de Datos (AltaPacientes), igual que el cotizador ──
      Lee 'Base Datos'!A:Q con la sesión de Google del usuario: A = ID, I = Paciente, Q = Teléfono. */
@@ -463,15 +429,10 @@ button[disabled] { opacity: .5; cursor: default }
   });
   dd.addEventListener('mousedown', function (e) { var b = e.target.closest('.opt'); if (b) { e.preventDefault(); elegir(Number(b.dataset.i)); } });
   document.addEventListener('click', function (e) { if (!e.target.closest('.search')) cierra(); });
-  $('waBtn').addEventListener('click', function () {
-    var tel = waTel(selTel); if (!tel) return;
-    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(lastMsg), '_blank', 'noopener');
-  });
   [pid, pname].forEach(function (el) { el.addEventListener('input', function () { if (el === pid) { selTel = ''; $('sel').hidden = true; } }); });
 
   [pid, pname].forEach(function (el) { el.addEventListener('input', function () { touched = true; render(); }); });
   $('copyMsg').addEventListener('click', function () { copiar(lastMsg, 'Mensaje copiado'); });
-  $('copyLink').addEventListener('click', function () { copiar(lastLink, 'Liga copiada'); });
 
   render();
   // Redibujar cuando carguen las tipografías de la marca
