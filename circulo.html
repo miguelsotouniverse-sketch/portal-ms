@@ -165,8 +165,8 @@ button[disabled] { opacity: .5; cursor: default }
     var nombre = ej ? 'Ana Ruiz' : pname.value.trim().replace(/\s+/g, ' ');
     var code = id ? 'MS-' + id : 'MS-';
     var saludo = nombre.split(' ')[0] || '';
-    var precarga = 'Hola, vengo de parte de ' + (nombre || 'una paciente') + ' del Dr. Miguel Soto. Mi código de invitación es ' + code + '.';
-    return { id: id, nombre: nombre, saludo: saludo, code: code, link: 'https://wa.me/' + NUM + '?text=' + encodeURIComponent(precarga) };
+    // Liga corta y limpia: abre la invitación (app.miguelsotomd.com/i/) y de ahí WhatsApp con Michelle con el código ya escrito.
+    return { id: id, nombre: nombre, saludo: saludo, code: code, link: 'https://app.miguelsotomd.com/i/?' + id };
   }
 
   // ── QR como canvas (qrcodejs), para la tarjeta y para la vista ──
@@ -236,10 +236,12 @@ button[disabled] { opacity: .5; cursor: default }
     var d = datos();
     lastLink = d.link;
     $('code').textContent = d.code;
-    lastMsg = (d.saludo ? d.saludo + ', ' : '') + 'gracias por su confianza en el Dr. Miguel Soto.\n\n' +
-      'Este es su enlace personal del Círculo MS. Si alguien cercano a usted quiere valorarse con el doctor, compártale este mensaje:\n\n' +
-      '«Le comparto el contacto del Dr. Miguel Soto. Si escribe con este enlace, le atienden con prioridad: ' + d.link + '»\n\n' +
-      'Cuando la persona que usted recomiende realice su cirugía, le haremos llegar crédito para sus tratamientos. Su código es ' + d.code + '.';
+    lastMsg = (d.saludo ? d.saludo + ', g' : 'G') + 'racias por su confianza en el Dr. Miguel Soto. Le enviamos su tarjeta del Círculo MS, el programa de recomendación del doctor.\n\n' +
+      'Cómo funciona:\n\n' +
+      '1. Si alguien cercano a usted quiere valorarse con el doctor, reenvíele su tarjeta y este enlace:\n' + d.link + '\n\n' +
+      '2. Esa persona abre el enlace y escribe a Michelle, la asistente del doctor, con su código ya incluido. Recibe atención prioritaria y, si se opera en los 12 meses siguientes, el costo de su valoración se le acredita a su cirugía.\n\n' +
+      '3. Cuando esa persona realice su cirugía, usted recibe crédito para sus tratamientos: $7,500, o $15,000 si la cirugía es de $100,000 o más.\n\n' +
+      'Su código personal es ' + d.code + '. Cualquier duda, aquí estamos.';
     $('msg').textContent = lastMsg;
     $('link').textContent = d.link;
     $('ejemplo').hidden = !!(limpiaId(pid.value) || pname.value.trim());

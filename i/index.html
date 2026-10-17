@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Invitación Círculo MS · Dr. Miguel Soto</title>
+<meta property="og:title" content="Invitación personal · Dr. Miguel Soto">
+<meta property="og:description" content="Le recomendaron con el Dr. Miguel Soto, cirujano plástico. Escriba desde aquí y le atienden con prioridad.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Jost:wght@400;500&display=swap">
+<style>
+:root { --bg:#030707; --ink:#F4F2F1; --muted:#B9AC9F; --taupe:#A19487; --line:#2A2E2E; --card:#0E1111 }
+:root[data-theme="light"] { --bg:#030707; --ink:#F4F2F1 }
+* { box-sizing:border-box }
+body { margin:0; min-height:100svh; background:var(--bg); color:var(--ink); font-family:"Jost",system-ui,sans-serif; font-size:16px; line-height:1.55;
+  display:grid; place-items:center; padding:32px max(20px, env(safe-area-inset-left)) 40px }
+main { width:100%; max-width:420px; display:grid; gap:26px; text-align:center }
+.mono { font-family:"Cormorant Garamond",Georgia,serif; font-size:44px; letter-spacing:.18em; color:var(--taupe); line-height:1 }
+.rule { width:64px; height:1px; background:var(--taupe); margin:12px auto 0 }
+.kick { font-size:12px; letter-spacing:.32em; text-transform:uppercase; color:var(--ink) }
+h1 { font-family:"Cormorant Garamond",Georgia,serif; font-weight:500; font-size:clamp(30px,8vw,38px); line-height:1.15; margin:0; text-wrap:balance }
+p { margin:0; color:var(--muted) }
+.code { border:1px solid var(--line); background:var(--card); border-radius:8px; padding:16px; display:grid; gap:4px }
+.code span { font-size:11.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--taupe) }
+.code b { font-family:"Cormorant Garamond",Georgia,serif; font-weight:500; font-size:34px; letter-spacing:.04em; color:var(--ink) }
+ul { list-style:none; margin:0; padding:0; display:grid; gap:12px; text-align:left }
+li { display:grid; grid-template-columns:22px 1fr; gap:10px; color:var(--muted) }
+li::before { content:"✦"; color:var(--taupe); font-size:13px; padding-top:3px }
+li b { color:var(--ink); font-weight:500 }
+a.btn { display:block; background:var(--ink); color:#030707; text-decoration:none; font-weight:500; font-size:17px; border-radius:8px; padding:16px 18px }
+a.btn:focus-visible { outline:2px solid var(--taupe); outline-offset:3px }
+.small { font-size:13px; color:var(--taupe) }
+</style>
+</head>
+<body>
+<main>
+  <div><div class="mono">MS</div><div class="rule"></div></div>
+  <div class="kick">Círculo MS</div>
+  <h1>Le recomendaron con el Dr. Miguel Soto</h1>
+  <p>Una paciente del doctor le compartió su invitación personal. Escriba por WhatsApp a Michelle, asistente del Dr. Soto: su código ya va incluido.</p>
+  <div class="code" id="codeBox"><span>Su código de invitación</span><b id="code">MS-</b></div>
+  <ul>
+    <li><div><b>Atención prioritaria</b> para agendar su valoración.</div></li>
+    <li><div><b>Su valoración se acredita a su cirugía</b> si decide operarse en los 12 meses siguientes.</div></li>
+  </ul>
+  <a class="btn" id="go" href="https://wa.me/525561906118">Escribir a Michelle por WhatsApp</a>
+  <p class="small">Dr. Miguel Soto · Cirujano plástico<br>Miramontes 2342, Coyoacán, Ciudad de México</p>
+</main>
+<script>
+(function () {
+  var q = (location.search || '') + ' ' + (location.hash || '');
+  var m = q.match(/(\d{2,6})/);
+  var id = m ? m[1] : '';
+  var texto = id
+    ? 'Hola, me recomendaron con el Dr. Miguel Soto. Mi código de invitación es MS-' + id + '.'
+    : 'Hola, me recomendaron con el Dr. Miguel Soto por el Círculo MS.';
+  if (id) document.getElementById('code').textContent = 'MS-' + id;
+  else document.getElementById('codeBox').hidden = true;
+  document.getElementById('go').href = 'https://wa.me/525561906118?text=' + encodeURIComponent(texto);
+})();
+</script>
+</body>
+</html>
