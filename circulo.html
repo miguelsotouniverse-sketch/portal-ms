@@ -134,7 +134,8 @@ button[disabled] { opacity: .5; cursor: default }
           <button id="copyMsg" type="button" class="ghost">Copiar mensaje</button>
         </div>
         <span class="toast" id="toast" role="status" aria-live="polite"></span>
-        <p class="hint" id="waHint">«Enviar a su WhatsApp» copia la tarjeta y abre el chat de la paciente con el mensaje ya escrito. En el chat, pegue la tarjeta con <b>Cmd+V</b> (Ctrl+V en Windows), envíela, y luego envíe el mensaje.</p>
+        <p class="hint" id="waHint">«Enviar a su WhatsApp» abre el chat de la paciente con este mensaje. La liga va primero para que WhatsApp muestre arriba la tarjeta; al abrirla, la paciente ve su tarjeta con su nombre y su código, y la comparte con un botón.</p>
+        <p class="hint"><a id="verT" href="#" target="_blank" rel="noopener">Ver la tarjeta como la ve la paciente</a></p>
         <div class="link" id="link" hidden></div>
       </div>
     </div>
@@ -165,8 +166,10 @@ button[disabled] { opacity: .5; cursor: default }
     var nombre = ej ? 'Ana Ruiz' : pname.value.trim().replace(/\s+/g, ' ');
     var code = id ? 'MS-' + id : 'MS-';
     var saludo = nombre.split(' ')[0] || '';
-    // Liga corta y limpia: abre la invitación (app.miguelsotomd.com/i/) y de ahí WhatsApp con Michelle con el código ya escrito.
-    return { id: id, nombre: nombre, saludo: saludo, code: code, link: 'https://app.miguelsotomd.com/i/?' + id };
+    // Liga a SU tarjeta (app.miguelsotomd.com/t/?ID.nombre): ahí la ve, la guarda y comparte su invitación.
+    var b64 = nombre ? btoa(unescape(encodeURIComponent(nombre))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '') : '';
+    var sufijo = id + (b64 ? '.' + b64 : '');
+    return { id: id, nombre: nombre, saludo: saludo, code: code, link: 'https://app.miguelsotomd.com/i/?' + sufijo, tarjeta: 'https://app.miguelsotomd.com/t/?' + sufijo };
   }
 
   // ── QR como canvas (qrcodejs), para la tarjeta y para la vista ──
@@ -236,13 +239,12 @@ button[disabled] { opacity: .5; cursor: default }
     var d = datos();
     lastLink = d.link;
     $('code').textContent = d.code;
-    lastMsg = (d.saludo ? d.saludo + ', g' : 'G') + 'racias por su confianza en el Dr. Miguel Soto. Le enviamos su tarjeta del Círculo MS, el programa de recomendación del doctor.\n\n' +
-      'Cómo funciona:\n\n' +
-      '1. Si alguien cercano a usted quiere valorarse con el doctor, reenvíele su tarjeta y este enlace:\n' + d.link + '\n\n' +
-      '2. Esa persona abre el enlace y escribe a Michelle, la asistente del doctor, con su código ya incluido. Recibe atención prioritaria y, si se opera en los 12 meses siguientes, el costo de su valoración se le acredita a su cirugía.\n\n' +
-      '3. Cuando esa persona realice su cirugía, usted recibe crédito para sus tratamientos: $7,500, o $15,000 si la cirugía es de $100,000 o más.\n\n' +
-      'Su código personal es ' + d.code + '. Cualquier duda, aquí estamos.';
+    // La liga va PRIMERO: así WhatsApp muestra la tarjeta (vista previa) arriba del texto.
+    lastMsg = d.tarjeta + '\n\n' +
+      (d.saludo ? d.saludo + ', g' : 'G') + 'racias por su confianza. Esta es su tarjeta del Círculo MS: ábrala para verla y compartirla con quien quiera recomendar con el doctor.\n\n' +
+      'Cuando esa persona se opere, usted recibe crédito para sus tratamientos.';
     $('msg').textContent = lastMsg;
+    $('verT').href = d.tarjeta;
     $('link').textContent = d.link;
     $('ejemplo').hidden = !!(limpiaId(pid.value) || pname.value.trim());
     var tel = waTel(selTel);
@@ -302,15 +304,10 @@ button[disabled] { opacity: .5; cursor: default }
   });
   $('waBtn').addEventListener('click', function () {
     var tel = waTel(selTel); if (!tel) return;
-    var abrir = function (copiada) {
-      var w = window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(lastMsg), '_blank', 'noopener');
-      aviso(toast, copiada ? 'Tarjeta copiada. En el chat pegue con Cmd+V y envíela; el mensaje ya va escrito.'
-                           : 'Se abrió el chat con el mensaje. Para la tarjeta, use «Descargar tarjeta» y adjúntela.', !copiada);
-    };
-    try {
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': tarjetaBlob() })]).then(function () { abrir(true); }, function () { abrir(false); });
-    } catch (e) { abrir(false); }
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(lastMsg), '_blank', 'noopener');
+    aviso(toast, 'Se abrió el chat con su mensaje. Espere a que aparezca la vista previa de la tarjeta y envíelo.');
   });
+
 
   /* ── Buscador conectado a la Base de Datos (AltaPacientes), igual que el cotizador ──
      Lee 'Base Datos'!A:Q con la sesión de Google del usuario: A = ID, I = Paciente, Q = Teléfono. */
