@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Círculo MS · Tarjetas y ligas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,400&family=Jost:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* Layout: una sola columna de trabajo — datos de la paciente arriba, luego lo que se envía por WhatsApp y la tarjeta impresa con su QR personal */
+:root {
+  --bg: #F4F2F1;
+  --surface: #FFFFFF;
+  --ink: #030707;
+  --muted: #6E655C;
+  --taupe: #A19487;
+  --line: #DDD7D1;
+  --ok: #2F6B4F;
+  --warn: #8A5A1F;
+  --display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --body: "Jost", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0B0D0D; --surface: #151818; --ink: #EFEBE7; --muted: #A79D93; --taupe: #B9AC9F; --line: #2A2E2E; --ok: #7CC4A0; --warn: #E0B070; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0B0D0D; --surface: #151818; --ink: #EFEBE7; --muted: #A79D93; --taupe: #B9AC9F; --line: #2A2E2E; --ok: #7CC4A0; --warn: #E0B070; color-scheme: dark }
+
+* { box-sizing: border-box }
+html { -webkit-text-size-adjust: 100% }
+body { margin: 0 }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 48px }
+.wrap { max-width: 720px; margin: 0 auto; display: grid; gap: 24px }
+header { display: grid; gap: 6px }
+.mono { font-family: var(--display); font-size: 15px; letter-spacing: .35em; color: var(--taupe) }
+h1 { font-family: var(--display); font-weight: 500; font-size: clamp(30px, 6vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance }
+.lede { color: var(--muted); margin: 0; max-width: 60ch }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; display: grid; gap: 16px; min-width: 0 }
+.label { font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 500 }
+.fields { display: grid; grid-template-columns: 160px 1fr; gap: 14px }
+@media (max-width: 520px) { .fields { grid-template-columns: 1fr } }
+.field { display: grid; gap: 6px; min-width: 0 }
+input, select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; width: 100% }
+input:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid var(--taupe); outline-offset: 2px }
+.idbox { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 4px; background: var(--bg) }
+.idbox span { padding-left: 12px; font-family: var(--display); font-size: 18px; color: var(--muted) }
+.idbox input { border: 0; background: transparent; padding-left: 4px; font-variant-numeric: tabular-nums }
+.hint { font-size: 12.5px; color: var(--muted) }
+.result { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start }
+@media (max-width: 560px) { .result { grid-template-columns: 1fr } }
+.code { font-family: var(--display); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums }
+.msg { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 14px; font-size: 14.5px; min-width: 0; overflow-wrap: anywhere }
+.link { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; font-family: ui-monospace, "SF Mono", Menlo, monospace }
+.qr { background: #F4F2F1; padding: 10px; border-radius: 4px; width: 172px; justify-self: center }
+.qr img, .qr canvas { display: block; width: 152px !important; height: 152px !important }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center }
+button { font: inherit; font-weight: 500; font-size: 14px; border-radius: 4px; padding: 9px 14px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--bg) }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line) }
+button[disabled] { opacity: .5; cursor: default }
+.toast { font-size: 13px; color: var(--ok) }
+.toast.warn { color: var(--warn) }
+.example { font-size: 12px; color: var(--taupe); border: 1px solid var(--taupe); border-radius: 999px; padding: 2px 10px }
+.steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--muted); font-size: 14px }
+.steps b { color: var(--ink); font-weight: 500 }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+@media (max-width: 560px) { .cards { grid-template-columns: 1fr } }
+.cards figure { margin: 0; display: grid; gap: 6px; min-width: 0 }
+.cards canvas { width: 100%; max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 0 0 1px var(--line) }
+.copies { display: flex; align-items: center; gap: 10px }
+.copies select { width: auto }
+@media (prefers-reduced-motion: no-preference) { .toast { transition: opacity .2s } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mono">M S</div>
+    <h1>Ligas personales del Círculo MS</h1>
+    <p class="lede">Escriba el número de paciente y su nombre. La página arma su mensaje con liga personal para WhatsApp y su tarjeta impresa con un QR que ya lleva su código: nadie tiene que anotar nada a mano.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="t-datos">
+    <div class="row"><span class="label" id="t-datos">La embajadora</span><span class="example" id="ejemplo">Ejemplo, cámbielo</span></div>
+    <div class="fields">
+      <div class="field">
+        <label class="hint" for="pid">Número de paciente (columna ID)</label>
+        <div class="idbox"><span>MS-</span><input id="pid" inputmode="numeric" autocomplete="off" value="2875" aria-describedby="pid-hint"></div>
+      </div>
+      <div class="field">
+        <label class="hint" for="pname">Nombre como aparece en la tarjeta</label>
+        <input id="pname" autocomplete="off" value="Ana Ruiz">
+      </div>
+    </div>
+    <p class="hint" id="pid-hint">Es el mismo número que recepción escribe en la columna <b>Referido_Por_ID</b> cuando llega alguien recomendado por ella.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="t-tarjeta">
+    <span class="label" id="t-tarjeta">Tarjeta impresa con QR personal</span>
+    <div class="cards">
+      <figure><canvas id="cFrente" width="1063" height="591" aria-label="Vista previa del frente de la tarjeta"></canvas><figcaption class="hint">Frente</figcaption></figure>
+      <figure><canvas id="cReverso" width="1063" height="591" aria-label="Vista previa del reverso de la tarjeta con QR personal"></canvas><figcaption class="hint">Reverso: el QR abre WhatsApp con su código ya escrito</figcaption></figure>
+    </div>
+    <div class="row">
+      <div class="copies"><label class="hint" for="ncopias">Tarjetas</label>
+        <select id="ncopias"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="6">6</option><option value="8">8</option></select></div>
+      <button id="printBtn" type="button">Abrir para imprimir</button>
+      <button id="pdfBtn" type="button" class="ghost">Descargar PDF</button>
+      <span class="toast" id="toastPdf" role="status" aria-live="polite"></span>
+    </div>
+    <p class="hint">Hoja carta a doble cara, volteo por el lado largo. Corte por las marcas: cada tarjeta mide 9 × 5 cm. Tres tarjetas por paciente alcanzan para el sobre y las dos que se entregan en la cita de 6 meses o 1 año.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="t-env">
+    <span class="label" id="t-env">Mensaje para enviarle por WhatsApp</span>
+    <div class="result">
+      <div class="field">
+        <div class="code" id="code">MS-2875</div>
+        <div class="msg" id="msg"></div>
+        <div class="row">
+          <button id="copyMsg" type="button">Copiar mensaje</button>
+          <button id="copyLink" type="button" class="ghost">Copiar solo la liga</button>
+          <span class="toast" id="toast" role="status" aria-live="polite"></span>
+        </div>
+        <div class="link" id="link"></div>
+      </div>
+      <figure class="field" style="margin:0">
+        <div class="qr" id="qr" aria-label="Código QR de la liga personal"></div>
+        <figcaption class="hint" style="text-align:center">Si la paciente prefiere,<br>puede escanearlo aquí</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="t-como">
+    <span class="label" id="t-como">Cómo se usa</span>
+    <ol class="steps">
+      <li><b>Antes del último retiro de puntos</b>, enfermería escribe aquí el número y el nombre de la paciente, descarga el PDF, lo imprime a doble cara y corta las tarjetas para el sobre.</li>
+      <li><b>En la cita de 1 mes</b>, después de que el doctor hace el pedido, recepción copia el mensaje y se lo envía por WhatsApp.</li>
+      <li>Quien ella recomiende escribe a Michelle con su código ya incluido, desde la liga o el QR de la tarjeta. <b>Al darle de alta</b>, se confirma el número en <b>Referido_Por_ID</b>.</li>
+      <li>El crédito se emite solo, cada hora, cuando la cirugía de la invitada queda liquidada. Se ve en la pestaña <b>Círculo MS</b>.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var NUM = '525561906118'; // WhatsApp de Michelle
+  var NEGRO = '#030707', TAUPE = '#A19487', CREMA = '#F4F2F1';
+  var $ = function (id) { return document.getElementById(id); };
+  var pid = $('pid'), pname = $('pname'), toast = $('toast');
+  var lastLink = '', lastMsg = '', touched = false;
+
+  function limpiaId(v) { return String(v || '').replace(/\D/g, ''); }
+  function datos() {
+    var id = limpiaId(pid.value);
+    var nombre = pname.value.trim().replace(/\s+/g, ' ');
+    var code = id ? 'MS-' + id : 'MS-';
+    var saludo = nombre.split(' ')[0] || '';
+    var precarga = 'Hola, vengo de parte de ' + (nombre || 'una paciente') + ' del Dr. Miguel Soto. Mi código de invitación es ' + code + '.';
+    return { id: id, nombre: nombre, saludo: saludo, code: code, link: 'https://wa.me/' + NUM + '?text=' + encodeURIComponent(precarga) };
+  }
+
+  // ── QR como canvas (qrcodejs), para la tarjeta y para la vista ──
+  function qrCanvas(text, size, dark, light) {
+    var box = document.createElement('div');
+    new QRCode(box, { text: text, width: size, height: size, colorDark: dark, colorLight: light, correctLevel: QRCode.CorrectLevel.M });
+    return box.querySelector('canvas');
+  }
+
+  // ── Dibujo de la tarjeta a 300 ppp (9 × 5 cm = 1063 × 591 px) ──
+  var PX = 1063 / 90; // px por mm
+  function spaced(ctx, txt, x, y, sp, align) {
+    var w = 0, chars = Array.from(txt);
+    chars.forEach(function (c, i) { w += ctx.measureText(c).width + (i < chars.length - 1 ? sp : 0); });
+    var cx = align === 'center' ? x - w / 2 : x;
+    var prev = ctx.textAlign; ctx.textAlign = 'left';
+    chars.forEach(function (c) { ctx.fillText(c, cx, y); cx += ctx.measureText(c).width + sp; });
+    ctx.textAlign = prev;
+  }
+  function fitFont(ctx, txt, family, weight, style, maxPx, maxW) {
+    var s = maxPx;
+    do { ctx.font = style + ' ' + weight + ' ' + s + 'px ' + family; if (ctx.measureText(txt).width <= maxW) break; s -= 2; } while (s > 20);
+  }
+  function frente(c, d) {
+    var ctx = c.getContext('2d'), W = c.width, H = c.height;
+    ctx.fillStyle = NEGRO; ctx.fillRect(0, 0, W, H);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = TAUPE; ctx.font = '400 ' + (8 * PX) + 'px "Cormorant Garamond", Georgia, serif';
+    spaced(ctx, 'MS', W / 2, 15 * PX, 1.1 * PX, 'center');
+    ctx.strokeStyle = TAUPE; ctx.lineWidth = 0.15 * PX;
+    ctx.beginPath(); ctx.moveTo(W / 2 - 6 * PX, 18.2 * PX); ctx.lineTo(W / 2 + 6 * PX, 18.2 * PX); ctx.stroke();
+    ctx.fillStyle = CREMA; ctx.font = '500 ' + (3 * PX) + 'px Jost, "Avenir Next", sans-serif';
+    spaced(ctx, 'CÍRCULO MS', W / 2, 25 * PX, 0.8 * PX, 'center');
+    ctx.textAlign = 'center';
+    ctx.fillStyle = TAUPE; ctx.font = 'italic 400 ' + (3.6 * PX) + 'px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText('Una invitación personal de', W / 2, 33.5 * PX);
+    var nom = d.nombre || ' ';
+    fitFont(ctx, nom, '"Cormorant Garamond", Georgia, serif', '500', 'normal', 6 * PX, W - 24 * PX);
+    ctx.fillStyle = CREMA; ctx.fillText(nom, W / 2, 41.5 * PX);
+    ctx.textAlign = 'left';
+  }
+  function reverso(c, d) {
+    var ctx = c.getContext('2d'), W = c.width, H = c.height, m = 6 * PX, qs = 24 * PX;
+    ctx.fillStyle = CREMA; ctx.fillRect(0, 0, W, H);
+    var q = qrCanvas(d.link, 512, NEGRO, CREMA);
+    if (q) { ctx.imageSmoothingEnabled = false; ctx.drawImage(q, W - m - qs, m, qs, qs); }
+    ctx.fillStyle = NEGRO; ctx.textAlign = 'center'; ctx.font = '400 ' + (2 * PX) + 'px Jost, "Avenir Next", sans-serif';
+    ctx.fillText('Escanee para escribirnos', W - m - qs / 2, m + qs + 3.4 * PX);
+    ctx.textAlign = 'left';
+    ctx.font = '500 ' + (3.9 * PX) + 'px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText('Dr. Miguel Soto', m, m + 4 * PX);
+    ctx.fillStyle = TAUPE; ctx.font = '400 ' + (1.85 * PX) + 'px Jost, "Avenir Next", sans-serif';
+    spaced(ctx, 'CIRUJANO PLÁSTICO', m, m + 8 * PX, 0.32 * PX);
+    ctx.fillStyle = NEGRO; ctx.font = '400 ' + (2.35 * PX) + 'px Jost, "Avenir Next", sans-serif';
+    ['Quien presente esta invitación recibe', 'atención prioritaria, y su valoración', 'se acredita a su cirugía.'].forEach(function (l, i) {
+      ctx.fillText(l, m, m + 15 * PX + i * 3.2 * PX);
+    });
+    ctx.fillStyle = TAUPE; ctx.font = '500 ' + (1.9 * PX) + 'px Jost, "Avenir Next", sans-serif';
+    spaced(ctx, 'CÓDIGO', m, H - 12.5 * PX, 0.42 * PX);
+    ctx.fillStyle = NEGRO; ctx.font = '500 ' + (4.4 * PX) + 'px "Cormorant Garamond", Georgia, serif';
+    ctx.fillText(d.code, m + 13 * PX, H - 12.3 * PX);
+    ctx.fillStyle = TAUPE; ctx.font = '400 ' + (1.9 * PX) + 'px Jost, "Avenir Next", sans-serif';
+    ctx.fillText('Miramontes 2342, Coyoacán, C.P. 04460, Ciudad de México', m, H - m + 0.5 * PX);
+  }
+
+  function render() {
+    var d = datos();
+    lastLink = d.link;
+    $('code').textContent = d.code;
+    lastMsg = (d.saludo ? d.saludo + ', ' : '') + 'gracias por su confianza en el Dr. Miguel Soto.\n\n' +
+      'Este es su enlace personal del Círculo MS. Si alguien cercano a usted quiere valorarse con el doctor, compártale este mensaje:\n\n' +
+      '«Le comparto el contacto del Dr. Miguel Soto. Si escribe con este enlace, le atienden con prioridad: ' + d.link + '»\n\n' +
+      'Cuando la persona que usted recomiende realice su cirugía, le haremos llegar crédito para sus tratamientos. Su código es ' + d.code + '.';
+    $('msg').textContent = lastMsg;
+    $('link').textContent = d.link;
+    $('ejemplo').hidden = touched;
+    if (window.QRCode) {
+      var box = $('qr');
+      box.innerHTML = '';
+      new QRCode(box, { text: d.link, width: 152, height: 152, colorDark: NEGRO, colorLight: CREMA, correctLevel: QRCode.CorrectLevel.M });
+      frente($('cFrente'), d);
+      reverso($('cReverso'), d);
+    }
+    $('pdfBtn').disabled = $('printBtn').disabled = !d.id || !window.jspdf;
+  }
+
+  function aviso(el, t, warn) {
+    el.textContent = t; el.classList.toggle('warn', !!warn);
+    setTimeout(function () { if (el.textContent === t) el.textContent = ''; }, 4000);
+  }
+
+  function copiar(texto, ok) {
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(texto === lastMsg ? $('msg') : $('link'));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      aviso(toast, 'Texto seleccionado: cópielo con Cmd+C');
+    };
+    try { navigator.clipboard.writeText(texto).then(function () { aviso(toast, ok); }, fallback); }
+    catch (e) { fallback(); }
+  }
+
+  // ── PDF carta: página 1 frentes, página 2 reversos (espejo horizontal para doble cara por el lado largo) ──
+  function construirPDF(d, n) {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ unit: 'mm', format: 'letter', compress: true });
+    var PW = 215.9, PH = 279.4, CW = 90, CH = 50, gx = 10, gy = 10, cols = 2, rows = 4;
+    var x0 = (PW - (cols * CW + (cols - 1) * gx)) / 2, y0 = (PH - (rows * CH + (rows - 1) * gy)) / 2;
+    var cf = document.createElement('canvas'); cf.width = 1063; cf.height = 591; frente(cf, d);
+    var cr = document.createElement('canvas'); cr.width = 1063; cr.height = 591; reverso(cr, d);
+    var imgF = cf.toDataURL('image/png'), imgR = cr.toDataURL('image/png');
+    function marcas(x, y) {
+      doc.setDrawColor(0); doc.setLineWidth(0.15);
+      var L = 4, g = 1.5;
+      [[x, y, -1, -1], [x + CW, y, 1, -1], [x, y + CH, -1, 1], [x + CW, y + CH, 1, 1]].forEach(function (p) {
+        doc.line(p[0] + p[2] * g, p[1], p[0] + p[2] * (g + L), p[1]);
+        doc.line(p[0], p[1] + p[3] * g, p[0], p[1] + p[3] * (g + L));
+      });
+    }
+    [['Frente', imgF, false], ['Reverso', imgR, true]].forEach(function (lado, k) {
+      if (k) doc.addPage();
+      for (var i = 0; i < n; i++) {
+        var r = Math.floor(i / cols), c = i % cols;
+        if (lado[2]) c = cols - 1 - c;
+        var x = x0 + c * (CW + gx), y = y0 + r * (CH + gy);
+        doc.addImage(lado[1], 'PNG', x, y, CW, CH, lado[0] + i, 'FAST');
+        marcas(x, y);
+      }
+      doc.setFontSize(7); doc.setTextColor(120);
+      doc.text(lado[0] + ' · ' + d.code + ' · imprimir a doble cara, volteo por el lado largo · cortar por las marcas · 9 × 5 cm', PW / 2, PH - 8, { align: 'center' });
+    });
+    return doc.output('blob');
+  }
+
+  function generar() {
+    var d = datos(), t = $('toastPdf');
+    if (!d.id) { aviso(t, 'Escriba el número de paciente.', true); return null; }
+    try {
+      var blob = construirPDF(d, Number($('ncopias').value) || 3);
+      return { blob: blob, nombre: 'Circulo-MS-tarjetas-' + d.code + (d.saludo ? '-' + d.saludo : '') + '.pdf' };
+    } catch (e) { aviso(t, 'No se pudo generar el PDF: ' + (e && e.message ? e.message : e), true); return null; }
+  }
+  $('pdfBtn').addEventListener('click', function () {
+    var g = generar(); if (!g) return;
+    var url = URL.createObjectURL(g.blob), a = document.createElement('a');
+    a.href = url; a.download = g.nombre; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    aviso($('toastPdf'), 'PDF descargado');
+  });
+  $('printBtn').addEventListener('click', function () {
+    var g = generar(); if (!g) return;
+    var url = URL.createObjectURL(g.blob);
+    var w = window.open(url, '_blank');
+    if (!w) { aviso($('toastPdf'), 'El navegador bloqueó la ventana. Use «Descargar PDF».', true); return; }
+    aviso($('toastPdf'), 'PDF abierto en otra pestaña: imprima a doble cara, volteo por el lado largo.');
+    setTimeout(function () { URL.revokeObjectURL(url); }, 300000);
+  });
+
+  [pid, pname].forEach(function (el) { el.addEventListener('input', function () { touched = true; render(); }); });
+  $('copyMsg').addEventListener('click', function () { copiar(lastMsg, 'Mensaje copiado'); });
+  $('copyLink').addEventListener('click', function () { copiar(lastLink, 'Liga copiada'); });
+
+  render();
+  // Redibujar cuando carguen las tipografías de la marca
+  if (document.fonts && document.fonts.load) {
+    Promise.all([
+      document.fonts.load('500 40px "Cormorant Garamond"'), document.fonts.load('italic 400 40px "Cormorant Garamond"'),
+      document.fonts.load('400 20px Jost'), document.fonts.load('500 20px Jost')
+    ]).then(render, render);
+  }
+})();
+</script>
+</body>
+</html>
